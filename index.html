@@ -148,8 +148,8 @@
         <!-- Tab Filtering -->
         <div class="tabs-container">
             <button class="tab-btn active" id="tab-all" onclick="setFilter('all')">All</button>
-            <button class="tab-btn" id="tab-video" onclick="setFilter('video')">📺 TV</button>
-            <button class="tab-btn" id="tab-audio" onclick="setFilter('audio')">🎧 Radio</button>
+            <button class="tab-btn" id="tab-video" onclick="setFilter('video')"> TV</button>
+            <button class="tab-btn" id="tab-audio" onclick="setFilter('audio')"> Radio</button>
         </div>
 
         <div id="channels-list"></div>
@@ -159,7 +159,7 @@
     <div id="view-player" class="app-container hidden">
         <h1 id="now-playing-title">Player</h1>
         <div class="actions-row">
-            <button class="btn btn-surface" onclick="stopAndGoBack()">← Back</button>
+            <button class="btn btn-surface" onclick="stopAndGoBack()"> Back</button>
         </div>
         
         <div class="player-wrapper" id="player-container">
@@ -177,9 +177,9 @@
         <h1>Manage Channels</h1>
         
         <div class="actions-row">
-            <button class="btn btn-surface" onclick="exportChannels()">📤 Export Backup</button>
+            <button class="btn btn-surface" onclick="exportChannels()"> Export Backup</button>
             <input type="file" id="importFile" class="hidden" accept=".json" onchange="importChannels(event)">
-            <button class="btn btn-surface" onclick="document.getElementById('importFile').click()">📥 Import Backup</button>
+            <button class="btn btn-surface" onclick="document.getElementById('importFile').click()"> Import Backup</button>
         </div>
         
         <hr style="border-color: var(--md-sys-color-outline); margin: 16px 0;">
@@ -188,8 +188,8 @@
         <input type="text" id="new-title" class="input-field" placeholder="Channel Name (e.g., BBC One)">
         <input type="text" id="new-url" class="input-field" placeholder="Stream URL (e.g., http://...m3u8)">
         <select id="new-type" class="input-field">
-            <option value="video">📺 Video (TV)</option>
-            <option value="audio">🎧 Audio (Radio)</option>
+            <option value="video"> Video (TV)</option>
+            <option value="audio"> Audio (Radio)</option>
         </select>
         <button class="btn btn-primary" style="width: 100%; margin-bottom: 24px;" onclick="addChannel()">+ Add Channel</button>
         
@@ -200,8 +200,8 @@
 
     <!-- BOTTOM NAVIGATION -->
     <div class="bottom-nav">
-        <button class="btn btn-primary" id="nav-channels" onclick="switchView('channels')">📺 Stations</button>
-        <button class="btn btn-surface" id="nav-manage" onclick="switchView('manage')">⚙️ Manage</button>
+        <button class="btn btn-primary" id="nav-channels" onclick="switchView('channels')"> Stations</button>
+        <button class="btn btn-surface" id="nav-manage" onclick="switchView('manage')"> Manage</button>
     </div>
 
     <script>
@@ -249,32 +249,28 @@
                     const card = document.createElement('div');
                     card.className = 'channel-card';
                     
-                    // Standard click to play
                     card.onclick = () => playMedia(ch);
                     
-                    // Long press to quickly edit/reorder
                     let pressTimer;
                     card.onpointerdown = (e) => {
-                        // Ignore right clicks or complex inputs
                         if (e.button !== 0 && e.pointerType === 'mouse') return;
                         pressTimer = setTimeout(() => {
                             if (navigator.vibrate) navigator.vibrate(50);
                             switchView('manage');
-                            // Auto-scroll to the item in the manage list
                             setTimeout(() => {
                                 const mCard = document.getElementById('manage-card-' + ch.id);
                                 if (mCard) mCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             }, 100);
-                        }, 500); // 500ms long press
+                        }, 500);
                     };
                     card.onpointerup = card.onpointercancel = card.onpointerout = () => { clearTimeout(pressTimer); };
 
                     card.innerHTML = `
                         <div class="channel-info">
                             <span class="channel-title">${ch.title}</span>
-                            <span class="channel-type">${ch.type === 'video' ? '📺 TV Stream' : '🎧 Radio Stream'}</span>
+                            <span class="channel-type">${ch.type === 'video' ? ' TV Stream' : ' Radio Stream'}</span>
                         </div>
-                        <div style="font-size: 24px; color: var(--md-sys-color-primary);">▶️</div>
+                        <div style="font-size: 24px; color: var(--md-sys-color-primary);"></div>
                     `;
                     list.appendChild(card);
                 }
@@ -287,13 +283,13 @@
                 mCard.innerHTML = `
                     <div class="channel-info" style="flex:1;">
                         <span class="channel-title">${ch.title}</span>
-                        <span class="channel-type">${ch.type === 'video' ? '📺 TV' : '🎧 Radio'}</span>
+                        <span class="channel-type">${ch.type === 'video' ? ' TV' : ' Radio'}</span>
                     </div>
                     <div class="reorder-controls">
-                        <button class="icon-btn" onclick="moveChannel(${index}, -1)" ${index === 0 ? 'style="opacity:0.3; pointer-events:none;"' : ''}>▲</button>
-                        <button class="icon-btn" onclick="moveChannel(${index}, 1)" ${index === channels.length - 1 ? 'style="opacity:0.3; pointer-events:none;"' : ''}>▼</button>
+                        <button class="icon-btn" onclick="moveChannel(${index}, -1)" ${index === 0 ? 'style="opacity:0.3; pointer-events:none;"' : ''}></button>
+                        <button class="icon-btn" onclick="moveChannel(${index}, 1)" ${index === channels.length - 1 ? 'style="opacity:0.3; pointer-events:none;"' : ''}></button>
                     </div>
-                    <button class="delete-btn" onclick="deleteChannel(${ch.id})">✖</button>
+                    <button class="delete-btn" onclick="deleteChannel(${ch.id})"></button>
                 `;
                 manageList.appendChild(mCard);
             });
@@ -338,7 +334,6 @@
             
             if (newIndex < 0 || newIndex >= channels.length) return;
             
-            // Swap array items
             const temp = channels[index];
             channels[index] = channels[newIndex];
             channels[newIndex] = temp;
@@ -365,15 +360,21 @@
                 hls = null;
             }
 
+            // AUTO-UPGRADE HTTP TO HTTPS to prevent Mixed Content blocking in PWAs
+            let secureUrl = channel.url;
+            if (secureUrl.startsWith('http://')) {
+                secureUrl = secureUrl.replace(/^http:\/\//i, 'https://');
+            }
+
             if (Hls.isSupported()) {
                 hls = new Hls();
-                hls.loadSource(channel.url);
+                hls.loadSource(secureUrl);
                 hls.attachMedia(videoElement);
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     videoElement.play().catch(e => console.log("Autoplay prevented:", e));
                 });
             } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                videoElement.src = channel.url;
+                videoElement.src = secureUrl;
                 videoElement.addEventListener('loadedmetadata', function() {
                     videoElement.play().catch(e => console.log("Autoplay prevented:", e));
                 });
