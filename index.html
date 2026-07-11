@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stream Player M3E</title>
+    <!-- Include HLS.js for broad m3u8 browser support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        /* === MATERIAL 3 EXPRESSIVE DARK THEME === */
+        :root {
+            --md-sys-color-background: #1A1C19;
+            --md-sys-color-on-background: #E2E3DD;
+            --md-sys-color-surface: #2A2C29; 
+            --md-sys-color-on-surface: #E2E3DD;
+            --md-sys-color-surface-variant: #42493F;
+            --md-sys-color-on-surface-variant: #C2C9BD; 
+            --md-sys-color-primary: #9CD67D; 
+            --md-sys-color-on-primary: #0C3900;
+            --md-sys-color-primary-container: #265108;
+            --md-sys-color-error: #FFB4AB; 
+            --md-sys-color-error-container: #93000A;
+            --md-sys-color-outline: #8C9388;
+            
+            --radius-large: 28px;
+            --radius-medium: 16px;
+            --spacing: 12px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: var(--spacing);
+            padding-bottom: 80px;
+        }
+
+        .app-container {
+            background-color: var(--md-sys-color-surface);
+            border-radius: var(--radius-large);
+            padding: 24px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid var(--md-sys-color-outline);
+            flex: 1;
+        }
+
+        h1 { text-align: center; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 24px; color: var(--md-sys-color-primary); }
+
+        /* Buttons & Inputs */
+        .input-field { background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); padding: 12px 16px; border-radius: 12px; font-size: 16px; outline: none; width: 100%; margin-bottom: 12px; }
+        .input-field:focus { border-color: var(--md-sys-color-primary); }
+        select.input-field { appearance: none; }
+
+        .btn { border: none; border-radius: 100px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 10px 20px; transition: opacity 0.2s; flex: 1;}
+        .btn:active { opacity: 0.8; }
+        .btn-primary { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-primary); }
+        .btn-surface { background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
+        .btn-error { background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
+        
+        .actions-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+
+        /* Channel Cards */
+        .channel-card { background-color: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-outline); border-radius: var(--radius-medium); padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+        .channel-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .channel-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+        .channel-type { font-size: 12px; color: var(--md-sys-color-primary); font-weight: bold; }
+        .delete-btn { background: none; border: none; color: var(--md-sys-color-error); font-size: 20px; padding: 8px; cursor: pointer; }
+
+        /* Player View */
+        .player-wrapper { position: relative; width: 100%; background: #000; border-radius: var(--radius-medium); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 16/9;}
+        video { width: 100%; height: 100%; outline: none; }
+        
+        /* Audio Visualizer (CSS Animation) */
+        .visualizer-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--md-sys-color-surface-variant); pointer-events: none; z-index: 10; }
+        .visualizer { display: flex; gap: 6px; height: 60px; align-items: flex-end; }
+        .bar { width: 12px; background-color: var(--md-sys-color-primary); border-radius: 6px 6px 0 0; animation: equalize 0.8s infinite alternate ease-in-out; }
+        .bar:nth-child(1) { animation-delay: 0.0s; height: 20%; }
+        .bar:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+        .bar:nth-child(3) { animation-delay: 0.4s; height: 100%; }
+        .bar:nth-child(4) { animation-delay: 0.1s; height: 40%; }
+        .bar:nth-child(5) { animation-delay: 0.3s; height: 80%; }
+        
+        @keyframes equalize {
+            0% { height: 10%; }
+            100% { height: 100%; }
+        }
+
+        /* Utility */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--md-sys-color-surface); border-top: 1px solid var(--md-sys-color-outline); display: flex; padding: 12px; gap: 12px; justify-content: center; z-index: 100; }
+        .hidden { display: none !important; }
+
+        /* Landscape Fullscreen Automation */
+        @media (orientation: landscape) {
+            body.playing-media { padding: 0; margin: 0; background: #000; }
+            body.playing-media .bottom-nav, body.playing-media h1, body.playing-media .actions-row, body.playing-media #now-playing-title { display: none !important; }
+            body.playing-media .app-container { border: none; border-radius: 0; padding: 0; max-width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; background: #000;}
+            body.playing-media .player-wrapper { border-radius: 0; height: 100vh; width: 100vw; max-height: 100vh; }
+            body.playing-media video { object-fit: contain; }
+        }
+    </style>
+    <!-- Link to the manifest file -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- Register the Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(registration => {
+          console.log('Service Worker registered successfully');
+        })
+        .catch(error => {
+          console.log('Service Worker registration failed:', error);
+        });
+    });
+  }
+</script>
+
+</head>
+<body>
+
+    <!-- CHANNELS VIEW -->
+    <div id="view-channels" class="app-container">
+        <h1>My Stations</h1>
+        <div id="channels-list"></div>
+    </div>
+
+    <!-- PLAYER VIEW -->
+    <div id="view-player" class="app-container hidden">
+        <h1 id="now-playing-title">Player</h1>
+        <div class="actions-row">
+            <button class="btn btn-surface" onclick="stopAndGoBack()">← Back</button>
+        </div>
+        
+        <div class="player-wrapper" id="player-container">
+            <div id="audio-visualizer" class="visualizer-container hidden">
+                <div class="visualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+            <video id="mediaPlayer" controls playsinline></video>
+        </div>
+    </div>
+    
+    <!-- SETTINGS / MANAGE VIEW -->
+    <div id="view-manage" class="app-container hidden">
+        <h1>Manage Channels</h1>
+        
+        <div class="actions-row">
+            <button class="btn btn-surface" onclick="exportChannels()">📤 Export Backup</button>
+            <input type="file" id="importFile" class="hidden" accept=".json" onchange="importChannels(event)">
+            <button class="btn btn-surface" onclick="document.getElementById('importFile').click()">📥 Import Backup</button>
+        </div>
+        
+        <hr style="border-color: var(--md-sys-color-outline); margin: 16px 0;">
+        
+        <h2 style="font-size: 18px; margin-top: 0;">Add New Channel</h2>
+        <input type="text" id="new-title" class="input-field" placeholder="Channel Name (e.g., BBC One)">
+        <input type="text" id="new-url" class="input-field" placeholder="Stream URL (e.g., http://...m3u8)">
+        <select id="new-type" class="input-field">
+            <option value="video">📺 Video (TV)</option>
+            <option value="audio">🎧 Audio (Radio)</option>
+        </select>
+        <button class="btn btn-primary" style="width: 100%; margin-bottom: 24px;" onclick="addChannel()">+ Add Channel</button>
+        
+        <hr style="border-color: var(--md-sys-color-outline); margin: 16px 0;">
+        <h2 style="font-size: 18px;">Delete Channels</h2>
+        <div id="manage-list"></div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <div class="bottom-nav">
+        <button class="btn btn-primary" id="nav-channels" onclick="switchView('channels')">📺 Stations</button>
+        <button class="btn btn-surface" id="nav-manage" onclick="switchView('manage')">⚙️ Manage</button>
+    </div>
+
+    <script>
+        let hls = null;
+        const videoElement = document.getElementById('mediaPlayer');
+        
+        // Default data to populate if empty
+        const defaultChannels = [
+            { id: 1, title: "Sample BBC TV", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", type: "video" },
+            { id: 2, title: "Sample BBC Radio", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", type: "audio" }
+        ];
+
+        // === LOCAL STORAGE SYSTEM ===
+        function getChannels() {
+            const saved = localStorage.getItem('stream_channels');
+            return saved ? JSON.parse(saved) : defaultChannels;
+        }
+
+        function setChannels(channels) {
+            localStorage.setItem('stream_channels', JSON.stringify(channels));
+        }
+
+        // === RENDER LISTS ===
+        function renderChannelsView() {
+            const channels = getChannels();
+            const list = document.getElementById('channels-list');
+            const manageList = document.getElementById('manage-list');
+            list.innerHTML = '';
+            manageList.innerHTML = '';
+
+            if (channels.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color: var(--md-sys-color-on-surface-variant);">No channels found. Add some in Manage.</p>';
+            }
+
+            channels.forEach(ch => {
+                // Main View Cards
+                const card = document.createElement('div');
+                card.className = 'channel-card';
+                card.onclick = () => playMedia(ch);
+                card.innerHTML = `
+                    <div class="channel-info">
+                        <span class="channel-title">${ch.title}</span>
+                        <span class="channel-type">${ch.type === 'video' ? '📺 TV Stream' : '🎧 Radio Stream'}</span>
+                    </div>
+                    <div style="font-size: 24px; color: var(--md-sys-color-primary);">▶️</div>
+                `;
+                list.appendChild(card);
+
+                // Manage View Cards
+                const mCard = document.createElement('div');
+                mCard.className = 'channel-card';
+                mCard.innerHTML = `
+                    <div class="channel-info">
+                        <span class="channel-title">${ch.title}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteChannel(${ch.id}, event)">✖</button>
+                `;
+                manageList.appendChild(mCard);
+            });
+        }
+
+        // === ADD / DELETE CHANNELS ===
+        function addChannel() {
+            const title = document.getElementById('new-title').value.trim();
+            const url = document.getElementById('new-url').value.trim();
+            const type = document.getElementById('new-type').value;
+
+            if (!title || !url) {
+                alert("Please enter both a title and a URL.");
+                return;
+            }
+
+            const channels = getChannels();
+            channels.push({ id: Date.now(), title, url, type });
+            setChannels(channels);
+            
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-url').value = '';
+            renderChannelsView();
+            alert("Channel added successfully!");
+        }
+
+        function deleteChannel(id, event) {
+            event.stopPropagation();
+            if (confirm("Delete this channel?")) {
+                let channels = getChannels();
+                channels = channels.filter(ch => ch.id !== id);
+                setChannels(channels);
+                renderChannelsView();
+            }
+        }
+
+        // === MEDIA PLAYER LOGIC ===
+        function playMedia(channel) {
+            switchView('player');
+            document.getElementById('now-playing-title').textContent = channel.title;
+            document.body.classList.add('playing-media');
+            
+            // Handle visualizer for audio
+            const visualizer = document.getElementById('audio-visualizer');
+            if (channel.type === 'audio') {
+                visualizer.classList.remove('hidden');
+            } else {
+                visualizer.classList.add('hidden');
+            }
+
+            // Cleanup previous HLS instance
+            if (hls) {
+                hls.destroy();
+                if (hls.bufferTimer) clearInterval(hls.bufferTimer);
+                hls = null;
+            }
+
+            // Load and Play m3u8
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(channel.url);
+                hls.attachMedia(videoElement);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    videoElement.play().catch(e => console.log("Autoplay prevented:", e));
+                });
+            } 
+            // Native support fallback (Safari)
+            else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = channel.url;
+                videoElement.addEventListener('loadedmetadata', function() {
+                    videoElement.play().catch(e => console.log("Autoplay prevented:", e));
+                });
+            } else {
+                alert("Your browser does not support HLS stream playback.");
+            }
+        }
+
+        function stopAndGoBack() {
+            videoElement.pause();
+            videoElement.src = "";
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            document.body.classList.remove('playing-media');
+            switchView('channels');
+        }
+
+        // === EXPORT / IMPORT ===
+        function exportChannels() {
+            const dataStr = JSON.stringify(getChannels());
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', 'stream_channels_backup.json');
+            linkElement.click();
+        }
+
+        function importChannels(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        setChannels(importedData);
+                        renderChannelsView();
+                        alert("Channels successfully imported!");
+                    } else alert("Invalid backup format.");
+                } catch (error) { alert("Error reading backup file."); }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        // === VIEW NAVIGATION ===
+        function switchView(view) {
+            const isChannels = view === 'channels';
+            const isManage = view === 'manage';
+            const isPlayer = view === 'player';
+            
+            document.getElementById('view-channels').classList.toggle('hidden', !isChannels);
+            document.getElementById('view-manage').classList.toggle('hidden', !isManage);
+            document.getElementById('view-player').classList.toggle('hidden', !isPlayer);
+            
+            document.getElementById('nav-channels').className = isChannels ? 'btn btn-primary' : 'btn btn-surface';
+            document.getElementById('nav-manage').className = isManage ? 'btn btn-primary' : 'btn btn-surface';
+            
+            if (isChannels || isManage) document.body.classList.remove('playing-media');
+        }
+
+        window.onload = () => { renderChannelsView(); };
+    </script>
+</body>
+</html>
