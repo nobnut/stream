@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Stream Player M3E</title>
-    <!-- Include HLS.js for broad m3u8 browser support -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         /* === MATERIAL 3 EXPRESSIVE DARK THEME === */
@@ -59,6 +58,11 @@
 
         h1 { text-align: center; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 24px; color: var(--md-sys-color-primary); }
 
+        /* Tabs */
+        .tabs-container { display: flex; gap: 8px; margin-bottom: 20px; background: var(--md-sys-color-background); padding: 4px; border-radius: 100px; border: 1px solid var(--md-sys-color-outline); }
+        .tab-btn { flex: 1; background: transparent; border: none; color: var(--md-sys-color-on-surface-variant); padding: 10px 16px; border-radius: 100px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 14px; }
+        .tab-btn.active { background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface); }
+
         /* Buttons & Inputs */
         .input-field { background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); padding: 12px 16px; border-radius: 12px; font-size: 16px; outline: none; width: 100%; margin-bottom: 12px; }
         .input-field:focus { border-color: var(--md-sys-color-primary); }
@@ -68,22 +72,27 @@
         .btn:active { opacity: 0.8; }
         .btn-primary { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-primary); }
         .btn-surface { background-color: var(--md-sys-color-background); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
-        .btn-error { background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
         
         .actions-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
 
         /* Channel Cards */
-        .channel-card { background-color: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-outline); border-radius: var(--radius-medium); padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+        .channel-card { background-color: var(--md-sys-color-background); border: 1px solid var(--md-sys-color-outline); border-radius: var(--radius-medium); padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .channel-card:active { background-color: var(--md-sys-color-surface-variant); }
         .channel-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
         .channel-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--md-sys-color-on-surface); }
         .channel-type { font-size: 12px; color: var(--md-sys-color-primary); font-weight: bold; }
-        .delete-btn { background: none; border: none; color: var(--md-sys-color-error); font-size: 20px; padding: 8px; cursor: pointer; }
+        
+        /* Reorder & Manage Controls */
+        .reorder-controls { display: flex; flex-direction: column; gap: 6px; margin-right: 4px; }
+        .icon-btn { background: var(--md-sys-color-surface-variant); border: none; color: var(--md-sys-color-on-surface); border-radius: 6px; width: 36px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
+        .icon-btn:active { opacity: 0.6; }
+        .delete-btn { background: none; border: none; color: var(--md-sys-color-error); font-size: 22px; padding: 8px; cursor: pointer; }
 
         /* Player View */
         .player-wrapper { position: relative; width: 100%; background: #000; border-radius: var(--radius-medium); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 16/9;}
         video { width: 100%; height: 100%; outline: none; }
         
-        /* Audio Visualizer (CSS Animation) */
+        /* Audio Visualizer */
         .visualizer-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--md-sys-color-surface-variant); pointer-events: none; z-index: 10; }
         .visualizer { display: flex; gap: 6px; height: 60px; align-items: flex-end; }
         .bar { width: 12px; background-color: var(--md-sys-color-primary); border-radius: 6px 6px 0 0; animation: equalize 0.8s infinite alternate ease-in-out; }
@@ -105,7 +114,7 @@
         /* Landscape Fullscreen Automation */
         @media (orientation: landscape) {
             body.playing-media { padding: 0; margin: 0; background: #000; }
-            body.playing-media .bottom-nav, body.playing-media h1, body.playing-media .actions-row, body.playing-media #now-playing-title { display: none !important; }
+            body.playing-media .bottom-nav, body.playing-media h1, body.playing-media .actions-row, body.playing-media #now-playing-title, body.playing-media .tabs-container { display: none !important; }
             body.playing-media .app-container { border: none; border-radius: 0; padding: 0; max-width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; background: #000;}
             body.playing-media .player-wrapper { border-radius: 0; height: 100vh; width: 100vw; max-height: 100vh; }
             body.playing-media video { object-fit: contain; }
@@ -135,6 +144,14 @@
     <!-- CHANNELS VIEW -->
     <div id="view-channels" class="app-container">
         <h1>My Stations</h1>
+        
+        <!-- Tab Filtering -->
+        <div class="tabs-container">
+            <button class="tab-btn active" id="tab-all" onclick="setFilter('all')">All</button>
+            <button class="tab-btn" id="tab-video" onclick="setFilter('video')">📺 TV</button>
+            <button class="tab-btn" id="tab-audio" onclick="setFilter('audio')">🎧 Radio</button>
+        </div>
+
         <div id="channels-list"></div>
     </div>
 
@@ -177,7 +194,7 @@
         <button class="btn btn-primary" style="width: 100%; margin-bottom: 24px;" onclick="addChannel()">+ Add Channel</button>
         
         <hr style="border-color: var(--md-sys-color-outline); margin: 16px 0;">
-        <h2 style="font-size: 18px;">Delete Channels</h2>
+        <h2 style="font-size: 18px;">Order & Delete</h2>
         <div id="manage-list"></div>
     </div>
 
@@ -189,9 +206,9 @@
 
     <script>
         let hls = null;
+        let currentFilter = 'all'; // 'all', 'video', or 'audio'
         const videoElement = document.getElementById('mediaPlayer');
         
-        // Default data to populate if empty
         const defaultChannels = [
             { id: 1, title: "Sample BBC TV", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", type: "video" },
             { id: 2, title: "Sample BBC Radio", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", type: "audio" }
@@ -208,6 +225,14 @@
         }
 
         // === RENDER LISTS ===
+        function setFilter(type) {
+            currentFilter = type;
+            document.getElementById('tab-all').className = type === 'all' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-video').className = type === 'video' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-audio').className = type === 'audio' ? 'tab-btn active' : 'tab-btn';
+            renderChannelsView();
+        }
+
         function renderChannelsView() {
             const channels = getChannels();
             const list = document.getElementById('channels-list');
@@ -215,38 +240,70 @@
             list.innerHTML = '';
             manageList.innerHTML = '';
 
-            if (channels.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color: var(--md-sys-color-on-surface-variant);">No channels found. Add some in Manage.</p>';
-            }
+            let hasVisibleChannels = false;
 
-            channels.forEach(ch => {
-                // Main View Cards
-                const card = document.createElement('div');
-                card.className = 'channel-card';
-                card.onclick = () => playMedia(ch);
-                card.innerHTML = `
-                    <div class="channel-info">
-                        <span class="channel-title">${ch.title}</span>
-                        <span class="channel-type">${ch.type === 'video' ? '📺 TV Stream' : '🎧 Radio Stream'}</span>
-                    </div>
-                    <div style="font-size: 24px; color: var(--md-sys-color-primary);">▶️</div>
-                `;
-                list.appendChild(card);
+            channels.forEach((ch, index) => {
+                // 1. Render Main View Cards (Filtered)
+                if (currentFilter === 'all' || currentFilter === ch.type) {
+                    hasVisibleChannels = true;
+                    const card = document.createElement('div');
+                    card.className = 'channel-card';
+                    
+                    // Standard click to play
+                    card.onclick = () => playMedia(ch);
+                    
+                    // Long press to quickly edit/reorder
+                    let pressTimer;
+                    card.onpointerdown = (e) => {
+                        // Ignore right clicks or complex inputs
+                        if (e.button !== 0 && e.pointerType === 'mouse') return;
+                        pressTimer = setTimeout(() => {
+                            if (navigator.vibrate) navigator.vibrate(50);
+                            switchView('manage');
+                            // Auto-scroll to the item in the manage list
+                            setTimeout(() => {
+                                const mCard = document.getElementById('manage-card-' + ch.id);
+                                if (mCard) mCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                        }, 500); // 500ms long press
+                    };
+                    card.onpointerup = card.onpointercancel = card.onpointerout = () => { clearTimeout(pressTimer); };
 
-                // Manage View Cards
+                    card.innerHTML = `
+                        <div class="channel-info">
+                            <span class="channel-title">${ch.title}</span>
+                            <span class="channel-type">${ch.type === 'video' ? '📺 TV Stream' : '🎧 Radio Stream'}</span>
+                        </div>
+                        <div style="font-size: 24px; color: var(--md-sys-color-primary);">▶️</div>
+                    `;
+                    list.appendChild(card);
+                }
+
+                // 2. Render Manage View Cards (Always shows all for accurate reordering)
                 const mCard = document.createElement('div');
                 mCard.className = 'channel-card';
+                mCard.id = 'manage-card-' + ch.id;
+                mCard.style.cursor = 'default';
                 mCard.innerHTML = `
-                    <div class="channel-info">
+                    <div class="channel-info" style="flex:1;">
                         <span class="channel-title">${ch.title}</span>
+                        <span class="channel-type">${ch.type === 'video' ? '📺 TV' : '🎧 Radio'}</span>
                     </div>
-                    <button class="delete-btn" onclick="deleteChannel(${ch.id}, event)">✖</button>
+                    <div class="reorder-controls">
+                        <button class="icon-btn" onclick="moveChannel(${index}, -1)" ${index === 0 ? 'style="opacity:0.3; pointer-events:none;"' : ''}>▲</button>
+                        <button class="icon-btn" onclick="moveChannel(${index}, 1)" ${index === channels.length - 1 ? 'style="opacity:0.3; pointer-events:none;"' : ''}>▼</button>
+                    </div>
+                    <button class="delete-btn" onclick="deleteChannel(${ch.id})">✖</button>
                 `;
                 manageList.appendChild(mCard);
             });
+
+            if (!hasVisibleChannels) {
+                list.innerHTML = '<p style="text-align:center; color: var(--md-sys-color-on-surface-variant);">No channels found in this tab.</p>';
+            }
         }
 
-        // === ADD / DELETE CHANNELS ===
+        // === ADD / DELETE / REORDER ===
         function addChannel() {
             const title = document.getElementById('new-title').value.trim();
             const url = document.getElementById('new-url').value.trim();
@@ -264,11 +321,9 @@
             document.getElementById('new-title').value = '';
             document.getElementById('new-url').value = '';
             renderChannelsView();
-            alert("Channel added successfully!");
         }
 
-        function deleteChannel(id, event) {
-            event.stopPropagation();
+        function deleteChannel(id) {
             if (confirm("Delete this channel?")) {
                 let channels = getChannels();
                 channels = channels.filter(ch => ch.id !== id);
@@ -277,13 +332,27 @@
             }
         }
 
+        function moveChannel(index, direction) {
+            let channels = getChannels();
+            const newIndex = index + direction;
+            
+            if (newIndex < 0 || newIndex >= channels.length) return;
+            
+            // Swap array items
+            const temp = channels[index];
+            channels[index] = channels[newIndex];
+            channels[newIndex] = temp;
+            
+            setChannels(channels);
+            renderChannelsView();
+        }
+
         // === MEDIA PLAYER LOGIC ===
         function playMedia(channel) {
             switchView('player');
             document.getElementById('now-playing-title').textContent = channel.title;
             document.body.classList.add('playing-media');
             
-            // Handle visualizer for audio
             const visualizer = document.getElementById('audio-visualizer');
             if (channel.type === 'audio') {
                 visualizer.classList.remove('hidden');
@@ -291,14 +360,11 @@
                 visualizer.classList.add('hidden');
             }
 
-            // Cleanup previous HLS instance
             if (hls) {
                 hls.destroy();
-                if (hls.bufferTimer) clearInterval(hls.bufferTimer);
                 hls = null;
             }
 
-            // Load and Play m3u8
             if (Hls.isSupported()) {
                 hls = new Hls();
                 hls.loadSource(channel.url);
@@ -306,9 +372,7 @@
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     videoElement.play().catch(e => console.log("Autoplay prevented:", e));
                 });
-            } 
-            // Native support fallback (Safari)
-            else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
                 videoElement.src = channel.url;
                 videoElement.addEventListener('loadedmetadata', function() {
                     videoElement.play().catch(e => console.log("Autoplay prevented:", e));
@@ -371,6 +435,7 @@
             document.getElementById('nav-manage').className = isManage ? 'btn btn-primary' : 'btn btn-surface';
             
             if (isChannels || isManage) document.body.classList.remove('playing-media');
+            if (isChannels) window.scrollTo(0, 0);
         }
 
         window.onload = () => { renderChannelsView(); };
